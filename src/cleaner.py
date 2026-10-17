@@ -57,6 +57,10 @@ def parse_issue_size_cr(val):
     m2 = re.search(r"([\d\.]+)\s*Cr", s, flags=re.I)
     if m2:
         return float(m2.group(1))
+    # Share-count text with an unknown rupee amount (e.g. "[.] Cr") must not
+    # fall back to the share count, which parse_float would treat as crores.
+    if re.search(r"\bshares\b", s, flags=re.I):
+        return np.nan
     return parse_float(val)
 
 def parse_price_band(val):

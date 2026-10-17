@@ -1,8 +1,8 @@
 # Source Coverage Report
 
-**Generated:** 2026-10-11 15:25:15  
+**Generated:** 2026-10-17 23:31:53  
 **Total Raw IPO Records Identified:** 1099  
-**Total In-Scope Eligible Issues (2015â€“2025):** 974  
+**Total In-Scope Eligible Issues (2015–2025):** 974  
 
 ## 1. Segment & Year Distribution
 

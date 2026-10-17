@@ -1,6 +1,6 @@
 # Dataset Partition & Split Report
 
-**Generated:** 2026-10-11 15:25:15  
+**Generated:** 2026-10-17 23:31:53  
 **Splitting Strategy:** Chronological split by `listing_date` (70% Train / 15% Validation / 15% Test) with company name tie-breaking.
 
 ## 1. Split Partition Summary

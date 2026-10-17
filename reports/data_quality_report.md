@@ -1,6 +1,6 @@
 # Data Quality & Completeness Report
 
-**Generated:** 2026-10-11 15:25:15  
+**Generated:** 2026-10-17 23:31:53  
 **Total Records Evaluated:** 974  
 **Total Attributes:** 56  
 
@@ -20,10 +20,10 @@
 | `issue_price_max` | 442 | 532 | 54.6% | Feature / Metadata |
 | `issue_price` | 974 | 0 | 0.0% | Feature / Metadata |
 | `total_issue_size_cr` | 974 | 0 | 0.0% | Feature / Metadata |
-| `fresh_issue_amount_cr` | 519 | 455 | 46.7% | Feature / Metadata |
-| `ofs_amount_cr` | 285 | 689 | 70.7% | Feature / Metadata |
-| `fresh_issue_pct` | 519 | 455 | 46.7% | Feature / Metadata |
-| `ofs_pct` | 285 | 689 | 70.7% | Feature / Metadata |
+| `fresh_issue_amount_cr` | 500 | 474 | 48.7% | Feature / Metadata |
+| `ofs_amount_cr` | 217 | 757 | 77.7% | Feature / Metadata |
+| `fresh_issue_pct` | 500 | 474 | 48.7% | Feature / Metadata |
+| `ofs_pct` | 217 | 757 | 77.7% | Feature / Metadata |
 | `lot_size` | 968 | 6 | 0.6% | Feature / Metadata |
 | `face_value` | 974 | 0 | 0.0% | Feature / Metadata |
 | `sector` | 923 | 51 | 5.2% | Feature / Metadata |
