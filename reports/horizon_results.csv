@@ -1,0 +1,2 @@
+Time point,Best model,Val IPOs,Baseline accuracy,Accuracy,AUC,Precision,Recall
+Listing day,Random Forest,146,0.781,0.76,0.753,0.811,0.904
