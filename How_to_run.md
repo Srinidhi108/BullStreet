@@ -1,49 +1,44 @@
-# BullStreet: Commands
+# BullStreet: Quickstart & Operations Guide
 
-Run in PowerShell.
+## 1. Quick Launch (Bloomberg Terminal Interface)
 
-## Setup (first time only)
+To launch the full Bloomberg Terminal web application with backend API and dual ML engines:
 
+```bash
+cd /Users/srinidhi/BullStreet
+source .venv/bin/activate
+python run_terminal.py
+```
+* **Terminal Interface**: Opens automatically at [http://127.0.0.1:8000](http://127.0.0.1:8000).
+* **API Documentation**: Interactive Swagger docs at [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
 
-cd C:\Projects\BullStreet
-python -m venv .venv
-.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-pip install xgboost shap matplotlib
+---
 
+## 2. CLI Training & Inference
 
-## Every new terminal
+```bash
+# Train dual models and generate performance benchmarks
+python -m src.model_engine
 
+# Run terminal predictions for a specific IPO
+python train_and_predict.py --ipo IPO_0816
+python train_and_predict.py --ipo "cargosol"
+```
 
-cd C:\Projects\BullStreet
-.venv\Scripts\Activate.ps1
+---
 
+## 3. Rebuilding the Dataset Pipeline
 
-## Rebuild the data
-
-
+If raw sources or cleaning rules are modified:
+```bash
 python main.py --stage clean --fetch-extended
 python main.py --stage split
 python main.py --stage report
 python main.py --stage audit
 pytest tests/test_pipeline.py -v
-
-
-## Train and predict
-
-
-python train_baseline.py
-python train_and_predict.py
-
-
-Look up one IPO:
-
-
-python train_and_predict.py --ipo IPO_0816
-
+```
 
 ## Rules
-
-- Close the CSV files in Excel before rebuilding.
+- Close any `.csv` files in spreadsheet viewers before rebuilding.
 - Always use `--fetch-extended` with `clean`.
-- Never run `--stage collect`.
+- Never run `--stage collect` (raw datasets are frozen and preserved).

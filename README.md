@@ -8,7 +8,7 @@ The pipeline ingests raw public IPO records, standardizes and validates attribut
 
 ## 1. Project Directory Structure
 
-The project implements the simplified, seven-essential-CSV specification:
+Project layout and dataset organization:
 
 ```text
 af_project/
@@ -48,7 +48,7 @@ af_project/
 
 ---
 
-## 2. Seven Essential Deliverables
+## 2. Core Project Deliverables
 
 1. **`data/raw/ipo_master_raw.csv`**: Unfiltered, unmodified raw records combining Mainboard and SME seed datasets (1,099 raw issue filings).
 2. **`data/processed/ipo_master_clean.csv`**: Cleaned, verified, and deduplicated master dataset of 974 Indian IPOs (294 Mainboard, 680 SME) with 56 structured attributes.

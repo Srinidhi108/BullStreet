@@ -1,21 +1,13 @@
 """
-train_and_predict.py  -  train on three time points, then predict real IPOs.
+train_and_predict.py - Multi-horizon training and inference utility.
 
-Put this file in the BullStreet folder (next to main.py) and run:
+Usage:
+    python train_and_predict.py
+    python train_and_predict.py --ipo IPO_0700
+    python train_and_predict.py --ipo "cargosol"
 
-    python train_and_predict.py                       # train + demo on 8 recent validation IPOs
-    python train_and_predict.py --ipo IPO_0700        # look up one IPO by its id
-    python train_and_predict.py --ipo "cargosol"      # ...or by part of the company name
-    python train_and_predict.py --demo-count 15       # show more demo IPOs
-
-Time points (a "session" = one day the stock market is open):
-    Listing day   : is the stock above its issue price at the close of day 1?
-    7 sessions    : is it above its issue price after 7 trading days?
-    30 sessions   : is it above its issue price after 30 trading days?
-
-For each time point it trains 3 models on the TRAIN split, compares them on the
-VALIDATION split, and keeps the best one (highest AUC) for the predictions.
-The TEST split is never used for training or choosing a model.
+Evaluates models on train and validation partitions across Listing Day,
+7-session, and 30-session horizons.
 """
 import argparse
 import os
@@ -127,11 +119,9 @@ def show_ipo(row, split_name, bundles):
     print(f"Listed: {row['listing_date']}   Issue price: {row['issue_price']}   "
           f"Total subscription: {row['total_subscription']}x   (split: {split_name})")
     if split_name == "train":
-        print("NOTE: the model trained on this IPO, so it has already seen the outcome.")
-        print("      This is NOT a fair test. Use a validation IPO instead.")
+        print("Note: In-sample training record.")
     elif split_name == "test":
-        print("NOTE: this IPO is in the held-out test set. Looking is fine, but do not")
-        print("      change your models based on test IPOs, or the final score is spoiled.")
+        print("Note: Held-out test split record.")
     X = pd.DataFrame([row[FEATURES]])
     print(f"  {'Time point':<13}{'Model score':>12}  {'Predicted':<10}{'Actual':<8}")
     for label, target in HORIZONS.items():

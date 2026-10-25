@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BULLSTREET | IPO INTELLIGENCE TERMINAL</title>
+  <link rel="stylesheet" href="/static/bloomberg.css">
+  <!-- Chart.js for High-Density Financial Visualizations -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- Top Status & Ticker Tape -->
+  <header class="bbg-header">
+    <div class="bbg-top-row">
+      <div class="bbg-logo">
+        BULLSTREET <span>IPO TERMINAL</span>
+      </div>
+      <div class="bbg-telemetry">
+        <div class="bbg-tele-item" id="terminalClock">--:--:-- IST</div>
+        <div class="bbg-tele-item">IPOs: <strong id="telemetryTotal">974</strong></div>
+        <div class="bbg-tele-item positive">WIN RATE: <strong id="telemetryWinRate">75.4%</strong></div>
+        <div class="bbg-tele-item positive">AVG GAIN: <strong id="telemetryAvgRet">+28.4%</strong></div>
+        <div class="bbg-tele-item">MODEL AUC: <strong id="telemetryAuc" style="color:var(--bbg-cyan);">0.755</strong></div>
+        <div class="bbg-tele-item">REG R²: <strong id="telemetryR2" style="color:var(--bbg-cyan);">0.422</strong></div>
+        <button id="audioToggle" class="bbg-audio-toggle active">[AUDIO: ON]</button>
+      </div>
+    </div>
+
+    <!-- Authentic Bloomberg Command Line -->
+    <div class="bbg-command-bar">
+      <span class="bbg-cmd-prefix">CMD &gt;</span>
+      <input type="text" id="cmdInput" class="bbg-cmd-input" placeholder="ENTER IPO_ID OR COMPANY NAME (E.G. IPO_0816, TATA TECH, CARGOSOL)...">
+      <button id="goBtn" class="bbg-go-btn">&lt;GO&gt;</button>
+    </div>
+  </header>
+
+  <!-- Function Key Tabs -->
+  <nav class="bbg-fkeys">
+    <button class="bbg-fkey active" data-tab="overview"><span>&lt;F1&gt;</span> DES (OVERVIEW)</button>
+    <button class="bbg-fkey" data-tab="predict"><span>&lt;F2&gt;</span> PRD (PREDICTION)</button>
+    <button class="bbg-fkey" data-tab="charts"><span>&lt;F3&gt;</span> GRA (CHARTS)</button>
+    <button class="bbg-fkey" data-tab="shap"><span>&lt;F4&gt;</span> XAI (SHAP DRIVERS)</button>
+    <button class="bbg-fkey" data-tab="peers"><span>&lt;F5&gt;</span> RV (PEER VALUATION)</button>
+    <button class="bbg-fkey" data-tab="benchmarks"><span>&lt;F6&gt;</span> STAT (BENCHMARKS)</button>
+    <button class="bbg-fkey" data-tab="simulator"><span>&lt;F7&gt;</span> SIM (WHAT-IF ENGINE)</button>
+  </nav>
+
+  <!-- Main Grid Workspace -->
+  <main class="bbg-main">
+    
+    <!-- Left Sidebar: IPO Directory & Search -->
+    <aside class="bbg-sidebar">
+      <div class="bbg-panel">
+        <div class="bbg-panel-header">
+          <span class="bbg-panel-title">SECURITY DIRECTORY</span>
+          <span class="bbg-panel-tag">NSE / BSE</span>
+        </div>
+        <div class="bbg-panel-body">
+          <div class="bbg-search-box">
+            <input type="text" id="searchInput" class="bbg-input" placeholder="SEARCH TICKER OR NAME...">
+          </div>
+          <div id="ipoList" class="bbg-ipo-list">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Center / Right Work Area -->
+    <section class="bbg-content">
+
+      <!-- 1. OVERVIEW & PREDICTION DESK VIEW -->
+      <div id="overviewView">
+        
+        <!-- Security Header & Description (DES <GO>) -->
+        <div class="bbg-panel">
+          <div class="bbg-panel-header">
+            <span class="bbg-panel-title" id="secTitle">SECURITY DESCRIPTION</span>
+            <span class="bbg-panel-tag" id="secSegment">MAINBOARD | NSE, BSE</span>
+          </div>
+          <div class="bbg-panel-body">
+            <div class="bbg-meta-grid">
+              <div class="bbg-meta-card">
+                <div class="bbg-meta-label">SECTOR / INDUSTRY</div>
+                <div class="bbg-meta-val cyan" id="metaSector">--</div>
+              </div>
+              <div class="bbg-meta-card">
+                <div class="bbg-meta-label">ISSUE PRICE</div>
+                <div class="bbg-meta-val amber" id="metaIssuePrice">₹--</div>
+              </div>
+              <div class="bbg-meta-card">
+                <div class="bbg-meta-label">ISSUE SIZE (CR)</div>
+                <div class="bbg-meta-val" id="metaIssueSize">₹-- Cr</div>
+              </div>
+              <div class="bbg-meta-card">
+                <div class="bbg-meta-label">LOT SIZE</div>
+                <div class="bbg-meta-val" id="metaLotSize">--</div>
+              </div>
+              <div class="bbg-meta-card">
+                <div class="bbg-meta-label">BIDDING DATES</div>
+                <div class="bbg-meta-val" id="metaDates">--</div>
+              </div>
+              <div class="bbg-meta-card">
+                <div class="bbg-meta-label">LISTING DATE</div>
+                <div class="bbg-meta-val" id="metaListDate">--</div>
+              </div>
+              <div class="bbg-meta-card">
+                <div class="bbg-meta-label">TOTAL SUBSCRIPTION</div>
+                <div class="bbg-meta-val cyan" id="metaTotalSub">--x</div>
+              </div>
+              <div class="bbg-meta-card">
+                <div class="bbg-meta-label">QIB MULTIPLE</div>
+                <div class="bbg-meta-val" id="metaQibSub">--x</div>
+              </div>
+              <div class="bbg-meta-card">
+                <div class="bbg-meta-label">NII MULTIPLE</div>
+                <div class="bbg-meta-val" id="metaNiiSub">--x</div>
+              </div>
+              <div class="bbg-meta-card">
+                <div class="bbg-meta-label">RETAIL MULTIPLE</div>
+                <div class="bbg-meta-val" id="metaRetailSub">--x</div>
+              </div>
+              <div class="bbg-meta-card">
+                <div class="bbg-meta-label">PRE-IPO REVENUE</div>
+                <div class="bbg-meta-val" id="metaRevenue">₹-- Cr</div>
+              </div>
+              <div class="bbg-meta-card">
+                <div class="bbg-meta-label">PAT (MARGIN)</div>
+                <div class="bbg-meta-val" id="metaPat">₹-- Cr</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dual Machine Learning Prediction Desk (PRD <GO>) -->
+        <div class="bbg-prediction-grid">
+          
+          <!-- Box 1: Classification Engine -->
+          <div class="bbg-predict-box highlight">
+            <div class="bbg-box-header">
+              <span class="bbg-box-title">CLASSIFICATION ENGINE (UP / DOWN)</span>
+              <span class="bbg-box-badge" id="predRiskBadge">LOW RISK</span>
+            </div>
+            <div class="bbg-metric-sub">CALIBRATED WIN PROBABILITY (POST-LISTING POSITIVE)</div>
+            <div class="bbg-big-metric green" id="predWinProb">--%</div>
+            <div>
+              <span class="bbg-verdict-pill buy" id="predVerdict">STRONG BUY</span>
+            </div>
+            <div class="bbg-metric-sub" style="margin-top: 8px;">
+              CONFIDENCE: <strong id="predConfidence">HIGH CONVICTION</strong>
+            </div>
+          </div>
+
+          <!-- Box 2: Regression Engine -->
+          <div class="bbg-predict-box highlight">
+            <div class="bbg-box-header">
+              <span class="bbg-box-title">REGRESSION ENGINE (EXPECTED RETURN)</span>
+              <span class="bbg-box-badge">DUAL ENSEMBLE</span>
+            </div>
+            <div class="bbg-metric-sub">EXPECTED LISTING DAY CLOSE RETURN</div>
+            <div class="bbg-big-metric green" id="predExpectedReturn">+--%</div>
+            <div class="bbg-metric-sub">
+              PROJECTED CLOSE: <strong id="predClosePrice" style="color:var(--bbg-white); font-size:14px;">₹--</strong>
+              &nbsp;|&nbsp; OPEN POP: <strong id="predOpenReturn" style="color:var(--bbg-cyan);">+--%</strong>
+            </div>
+            <div class="bbg-metric-sub" style="margin-top: 8px;">
+              90% CONFIDENCE INTERVAL: <strong id="predConfInterval">[ +--% to +--% ]</strong>
+            </div>
+          </div>
+
+          <!-- Box 3: Actual Ground Truth Outcome (if historical) -->
+          <div class="bbg-predict-box" id="groundTruthCard">
+            <div class="bbg-box-header">
+              <span class="bbg-box-title">HISTORICAL REALIZED OUTCOME</span>
+              <span class="bbg-box-badge">ACTUAL MARKET CLOSE</span>
+            </div>
+            <div class="bbg-metric-sub">ACTUAL LISTING DAY RETURN</div>
+            <div class="bbg-big-metric" id="actualReturnVal" style="color:var(--bbg-green);">+--%</div>
+            <div class="bbg-metric-sub" id="actualDeltaVal">
+              Delta vs Pred: +0.00%
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Charts Section (GRA <GO>) -->
+        <div id="chartsSection" class="bbg-charts-grid">
+          
+          <!-- Chart 1: Multi-Horizon Forecast Trajectory -->
+          <div class="bbg-chart-card">
+            <div class="bbg-chart-title">
+              MULTI-HORIZON PRICE TRAJECTORY FORECAST <span>[ISSUE &rarr; DAY 1 &rarr; 7D &rarr; 30D]</span>
+            </div>
+            <div style="height: 200px;">
+              <canvas id="trajectoryChartCanvas"></canvas>
+            </div>
+          </div>
+
+          <!-- Chart 2: Subscription Granularity Breakdown -->
+          <div class="bbg-chart-card">
+            <div class="bbg-chart-title">
+              INVESTOR CATEGORY SUBSCRIPTION BREAKDOWN <span>[QIB vs NII vs RETAIL]</span>
+            </div>
+            <div style="height: 200px;">
+              <canvas id="subscriptionChartCanvas"></canvas>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Explainable AI (SHAP Waterfall) Section (XAI <GO>) -->
+        <div id="shapSection" class="bbg-panel">
+          <div class="bbg-panel-header">
+            <span class="bbg-panel-title">EXPLAINABLE AI: LOCAL SHAP FACTOR ATTRIBUTION (XAI)</span>
+            <span class="bbg-panel-tag">FEATURE CONTRIBUTION WATERFALL</span>
+          </div>
+          <div class="bbg-panel-body">
+            <div style="font-size: 11px; color: var(--bbg-gray-muted); margin-bottom: 8px;">
+              Shows the top positive drivers (<span style="color:var(--bbg-green);">GREEN</span>) pushing listing expectations UP and negative drivers (<span style="color:var(--bbg-red);">RED</span>) pulling expectations DOWN for this specific IPO.
+            </div>
+            <div id="shapList" class="bbg-shap-list">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- 2. HISTORICAL PEER VALUATION VIEW (RV <GO>) -->
+      <div id="peersView" style="display: none;">
+        <div class="bbg-panel">
+          <div class="bbg-panel-header">
+            <span class="bbg-panel-title">RELATIVE VALUATION: SIMILAR HISTORICAL IPOS (RV)</span>
+            <span class="bbg-panel-tag">DISTANCE-MATCHED PEERS</span>
+          </div>
+          <div class="bbg-panel-body">
+            <div class="bbg-table-wrap">
+              <table class="bbg-table">
+                <thead>
+                  <tr>
+                    <th>IPO ID</th>
+                    <th>COMPANY NAME</th>
+                    <th>SECTOR</th>
+                    <th>ISSUE PRICE</th>
+                    <th>SIZE (CR)</th>
+                    <th>TOTAL SUB</th>
+                    <th>ACTUAL LISTING GAIN</th>
+                  </tr>
+                </thead>
+                <tbody id="peersTableBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. MODEL BENCHMARK MATRIX VIEW (STAT <GO>) -->
+      <div id="benchmarksView" style="display: none;">
+        <div class="bbg-panel">
+          <div class="bbg-panel-header">
+            <span class="bbg-panel-title">STATISTICAL AUDIT & VALIDATION BENCHMARKS</span>
+            <span class="bbg-panel-tag">HELD-OUT VALIDATION SET (146 IPOS)</span>
+          </div>
+          <div class="bbg-panel-body">
+            <div class="bbg-table-wrap">
+              <table class="bbg-table">
+                <thead>
+                  <tr>
+                    <th>MODEL NAME</th>
+                    <th>ROC-AUC</th>
+                    <th>ACCURACY</th>
+                    <th>BASELINE ACC</th>
+                    <th>PRECISION</th>
+                    <th>RECALL / MAE</th>
+                    <th>STATUS / VERDICT</th>
+                  </tr>
+                </thead>
+                <tbody id="benchmarkTableBody">
+                  <!-- Dynamically populated -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 4. WHAT-IF SCENARIO SIMULATOR (SIM <GO>) -->
+      <div id="simulatorView" style="display: none;">
+        <div class="bbg-panel">
+          <div class="bbg-panel-header">
+            <span class="bbg-panel-title">WHAT-IF SCENARIO SIMULATOR (SIM)</span>
+            <span class="bbg-panel-tag">REAL-TIME INFERENCE ENGINE</span>
+          </div>
+          <div class="bbg-panel-body">
+            <form id="simulatorForm">
+              <div class="bbg-sim-form">
+                <div class="bbg-form-group">
+                  <label class="bbg-form-label">ISSUE PRICE (₹)</label>
+                  <input type="number" id="simPrice" class="bbg-input" value="350" step="any" required>
+                </div>
+                <div class="bbg-form-group">
+                  <label class="bbg-form-label">TOTAL SIZE (₹ CR)</label>
+                  <input type="number" id="simSize" class="bbg-input" value="650" step="any" required>
+                </div>
+                <div class="bbg-form-group">
+                  <label class="bbg-form-label">TOTAL SUBSCRIPTION (X)</label>
+                  <input type="number" id="simSub" class="bbg-input" value="45.5" step="any" required>
+                </div>
+                <div class="bbg-form-group">
+                  <label class="bbg-form-label">QIB SUBSCRIPTION (X)</label>
+                  <input type="number" id="simQib" class="bbg-input" value="60.0" step="any" required>
+                </div>
+                <div class="bbg-form-group">
+                  <label class="bbg-form-label">RETAIL SUBSCRIPTION (X)</label>
+                  <input type="number" id="simRetail" class="bbg-input" value="25.0" step="any" required>
+                </div>
+                <div class="bbg-form-group">
+                  <label class="bbg-form-label">ANNUAL REVENUE (₹ CR)</label>
+                  <input type="number" id="simRevenue" class="bbg-input" value="850" step="any" required>
+                </div>
+                <div class="bbg-form-group">
+                  <label class="bbg-form-label">ANNUAL PAT (₹ CR)</label>
+                  <input type="number" id="simPat" class="bbg-input" value="95" step="any" required>
+                </div>
+                <div class="bbg-form-group">
+                  <label class="bbg-form-label">INDIA VIX</label>
+                  <input type="number" id="simVix" class="bbg-input" value="13.2" step="any" required>
+                </div>
+              </div>
+              <button type="submit" class="bbg-go-btn" style="margin-top: 10px; width: 100%; padding: 8px;">
+                &lt;EXECUTE WHAT-IF SIMULATION&gt;
+              </button>
+            </form>
+
+            <div id="simResultsBox" style="display: none; margin-top: 14px; padding: 12px; background: #0f131d; border: 1px solid var(--bbg-amber);">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <script src="/static/bloomberg.js"></script>
+</body>
+</html>

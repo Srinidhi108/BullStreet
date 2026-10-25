@@ -1,15 +1,11 @@
 """
-train_baseline.py  -  first ML run on the BullStreet dataset.
+train_baseline.py - Baseline Machine Learning Benchmarks.
 
-Put this file in the BullStreet-main folder (next to main.py) and run:
-    python train_baseline.py
-
-What it does:
-  1. Loads the date-based train / validation splits.
-  2. Preprocesses (fit on train only, so there is no leakage).
-  3. Trains: "always positive" baseline, Logistic Regression, Random Forest, XGBoost.
-  4. Compares them on the VALIDATION set (the test set is left untouched on purpose).
-  5. Runs SHAP on the best tree model and saves a plot to reports/shap_summary.png.
+Pipeline:
+1. Loads chronological train and validation splits.
+2. Applies leakage-free preprocessing (imputation & scaling fit strictly on train).
+3. Evaluates baseline models: Dummy, Logistic Regression, Random Forest, XGBoost.
+4. Computes validation metrics and exports SHAP summary to reports/shap_summary.png.
 """
 import warnings
 import pandas as pd

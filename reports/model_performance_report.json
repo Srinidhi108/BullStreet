@@ -1,0 +1,22 @@
+{
+  "validation_sample_size": 146,
+  "baseline_always_positive_acc": 0.7808,
+  "classification": {
+    "ensemble_auc": 0.7368,
+    "rf_auc": 0.7547,
+    "xgb_auc": 0.722,
+    "lgb_auc": 0.7138,
+    "accuracy": 0.7397,
+    "precision": 0.7923,
+    "recall": 0.9035,
+    "f1": 0.8443
+  },
+  "regression": {
+    "mae": 21.98,
+    "rmse": 31.17,
+    "r2": 0.4224,
+    "directional_accuracy": 0.7808,
+    "rf_mae": 22.17,
+    "lgb_mae": 22.1
+  }
+}

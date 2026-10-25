@@ -1,6 +1,6 @@
 """
 Comprehensive automated leakage auditor for IPO Intelligence Platform.
-Verifies all 10 leakage check criteria specified in PROMPT.md Step Nine:
+Verifies 10 core financial and temporal leakage criteria:
 1. No target column appears in predictor feature matrix
 2. No post-listing prices appear in predictor features
 3. Financial values were reported/available prior to prediction timestamp
