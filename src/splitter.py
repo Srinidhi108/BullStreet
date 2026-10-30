@@ -30,8 +30,20 @@ def create_chronological_splits(
     # Exclude rows without verified primary target for modeling splits
     df_eligible = df[df["listing_day_close_return_pct"].notna() & df["positive_listing_return"].notna()].copy()
     
-    # Sort chronologically by listing_date with company_name as secondary tie-breaker
-    df_eligible = df_eligible.sort_values(by=["listing_date", "company_name"]).reset_index(drop=True)
+    # Parse dates before sorting. The CSV may contain DD-MM-YY strings; sorting
+    # those strings lexicographically produces an invalid chronological split.
+    df_eligible["_listing_date_sort"] = pd.to_datetime(
+        df_eligible["listing_date"], dayfirst=True, errors="coerce"
+    )
+    invalid_dates = int(df_eligible["_listing_date_sort"].isna().sum())
+    if invalid_dates:
+        logger.warning("Excluding %d rows with invalid listing dates from chronological split", invalid_dates)
+        df_eligible = df_eligible.dropna(subset=["_listing_date_sort"])
+
+    df_eligible = df_eligible.sort_values(
+        by=["_listing_date_sort", "company_name"]
+    ).reset_index(drop=True)
+    df_eligible = df_eligible.drop(columns=["_listing_date_sort"])
     
     n_total = len(df_eligible)
     n_train = int(np.floor(n_total * train_ratio))

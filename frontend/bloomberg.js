@@ -331,6 +331,21 @@ function renderPredictionResults(data, pred) {
   document.getElementById("predOpenReturn").innerText = `${reg.expected_opening_gain_pct >= 0 ? "+" : ""}${reg.expected_opening_gain_pct}%`;
   document.getElementById("predConfInterval").innerText = `[ ${reg.confidence_interval_pct[0]}% to ${reg.confidence_interval_pct[1]}% ]`;
 
+  // Trained 7-session and 30-session horizon models
+  const h = reg.horizon_forecast || {};
+  const setHorizonValue = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.innerText = `${value >= 0 ? "+" : ""}${value}%`;
+  };
+  const setProbability = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.innerText = `${value}%`;
+  };
+  setHorizonValue("pred7Return", h.session_7_pct);
+  setHorizonValue("pred30Return", h.session_30_pct);
+  setProbability("pred7Win", cls.session_7_win_probability_pct);
+  setProbability("pred30Win", cls.session_30_win_probability_pct);
+
   // Ground Truth (Actual Listing Day Result if available)
   const groundTruthCard = document.getElementById("groundTruthCard");
   if (data.listing_day_close_return_pct !== null && data.listing_day_close_return_pct !== undefined) {

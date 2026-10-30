@@ -18,6 +18,17 @@ from src.model_engine import engine, FEATURE_NAMES
 
 logger = logging.getLogger(__name__)
 
+
+def safe_float(value: Any, default: float = 0.0) -> float:
+    """Convert missing/non-finite dataset values into JSON-safe numbers."""
+    try:
+        if value is None or pd.isna(value):
+            return default
+        result = float(value)
+        return default if not np.isfinite(result) else result
+    except (TypeError, ValueError):
+        return default
+
 # Initialize FastAPI App
 app = FastAPI(
     title="BullStreet IPO Intelligence Terminal API",
@@ -156,11 +167,11 @@ def list_ipos(
             "listing_segment": row["listing_segment"],
             "exchange": row["exchange"],
             "listing_date": str(row["listing_date"]),
-            "issue_price": float(row.get("issue_price") or 0),
-            "total_issue_size_cr": float(row.get("total_issue_size_cr") or 0),
-            "total_subscription": float(row.get("total_subscription") or 0),
-            "actual_return_pct": round(float(row.get("listing_day_close_return_pct") or 0), 2),
-            "positive_listing": int(row.get("positive_listing_return") or 0),
+            "issue_price": safe_float(row.get("issue_price")),
+            "total_issue_size_cr": safe_float(row.get("total_issue_size_cr")),
+            "total_subscription": safe_float(row.get("total_subscription")),
+            "actual_return_pct": round(safe_float(row.get("listing_day_close_return_pct")), 2),
+            "positive_listing": int(safe_float(row.get("positive_listing_return"))),
             "sector": str(row.get("sector") or "General"),
         })
 
@@ -214,10 +225,16 @@ def predict_ipo(req: PredictionRequest):
             "ipo_id": features.get("ipo_id", "CUSTOM_SIM"),
             "company_name": features.get("company_name", "Hypothetical Scenario"),
             "listing_segment": features.get("listing_segment", "Mainboard"),
-            "issue_price": float(features.get("issue_price") or 100),
-            "total_subscription": float(features.get("total_subscription") or 1),
-            "actual_listing_return_pct": features.get("listing_day_close_return_pct"),
-            "actual_positive_return": features.get("positive_listing_return"),
+            "issue_price": safe_float(features.get("issue_price"), 100.0),
+            "total_subscription": safe_float(features.get("total_subscription"), 1.0),
+            "actual_listing_return_pct": (
+                None if pd.isna(features.get("listing_day_close_return_pct"))
+                else safe_float(features.get("listing_day_close_return_pct"))
+            ),
+            "actual_positive_return": (
+                None if pd.isna(features.get("positive_listing_return"))
+                else int(safe_float(features.get("positive_listing_return")))
+            ),
         }
         return prediction_result
     except Exception as e:

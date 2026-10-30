@@ -1,0 +1,64 @@
+{
+  "test_file": "data/splits/test.csv",
+  "test_rows": 147,
+  "listing_day": {
+    "classification": {
+      "roc_auc": 0.7029,
+      "accuracy": 0.8299,
+      "balanced_accuracy": 0.5635,
+      "precision": 0.8741,
+      "recall": 0.9365,
+      "f1": 0.9042,
+      "threshold": 0.5,
+      "always_positive_baseline_accuracy": 0.8571,
+      "sample_size": 147
+    },
+    "regression": {
+      "mae": 31.72,
+      "rmse": 42.69,
+      "r2": 0.2937,
+      "directional_accuracy": 0.8571,
+      "sample_size": 147
+    }
+  },
+  "7_session": {
+    "classification": {
+      "roc_auc": 0.6642,
+      "accuracy": 0.6581,
+      "balanced_accuracy": 0.6222,
+      "precision": 0.8378,
+      "recall": 0.6889,
+      "f1": 0.7561,
+      "threshold": 0.6500000000000001,
+      "always_positive_baseline_accuracy": 0.7692,
+      "sample_size": 117
+    },
+    "regression": {
+      "mae": 45.73,
+      "rmse": 65.71,
+      "r2": 0.0179,
+      "directional_accuracy": 0.735,
+      "sample_size": 117
+    }
+  },
+  "30_session": {
+    "classification": {
+      "roc_auc": 0.6165,
+      "accuracy": 0.6838,
+      "balanced_accuracy": 0.6142,
+      "precision": 0.7831,
+      "recall": 0.7738,
+      "f1": 0.7784,
+      "threshold": 0.44000000000000006,
+      "always_positive_baseline_accuracy": 0.7179,
+      "sample_size": 117
+    },
+    "regression": {
+      "mae": 58.79,
+      "rmse": 83.56,
+      "r2": -0.0124,
+      "directional_accuracy": 0.6752,
+      "sample_size": 117
+    }
+  }
+}

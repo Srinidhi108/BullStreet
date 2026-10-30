@@ -170,6 +170,24 @@
           </div>
 
           <!-- Box 3: Actual Ground Truth Outcome (if historical) -->
+          <div class="bbg-predict-box highlight">
+            <div class="bbg-box-header">
+              <span class="bbg-box-title">TRAINED HORIZON FORECASTS</span>
+              <span class="bbg-box-badge">7D / 30D MODELS</span>
+            </div>
+            <div class="bbg-metric-sub">7-SESSION RETURN / POSITIVE PROBABILITY</div>
+            <div class="bbg-metric-sub" style="margin-top: 4px;">
+              RETURN: <strong id="pred7Return" style="color:var(--bbg-green);">+--%</strong>
+              &nbsp;|&nbsp; WIN: <strong id="pred7Win" style="color:var(--bbg-cyan);">--%</strong>
+            </div>
+            <div class="bbg-metric-sub" style="margin-top: 8px;">30-SESSION RETURN / POSITIVE PROBABILITY</div>
+            <div class="bbg-metric-sub" style="margin-top: 4px;">
+              RETURN: <strong id="pred30Return" style="color:var(--bbg-green);">+--%</strong>
+              &nbsp;|&nbsp; WIN: <strong id="pred30Win" style="color:var(--bbg-cyan);">--%</strong>
+            </div>
+          </div>
+
+          <!-- Box 4: Actual Ground Truth Outcome (if historical) -->
           <div class="bbg-predict-box" id="groundTruthCard">
             <div class="bbg-box-header">
               <span class="bbg-box-title">HISTORICAL REALIZED OUTCOME</span>
@@ -345,6 +363,6 @@
     </section>
   </main>
 
-  <script src="/static/bloomberg.js"></script>
+  <script src="/static/bloomberg.js?v=horizon-models-20261030"></script>
 </body>
 </html>

@@ -1,22 +1,83 @@
 {
   "validation_sample_size": 146,
   "baseline_always_positive_acc": 0.7808,
+  "ensemble_weights_tuned_on_validation": {
+    "listing": {
+      "cal": 0.95,
+      "xgb": 0.0,
+      "lgb": 0.05
+    },
+    "listing_regression_rf": 0.6000000000000001,
+    "7_session": {
+      "cal": 0.05,
+      "xgb": 0.2,
+      "lgb": 0.75
+    },
+    "7_regression_rf": 1.0,
+    "30_session": {
+      "cal": 0.8,
+      "xgb": 0.0,
+      "lgb": 0.2
+    },
+    "30_regression_rf": 1.0
+  },
+  "classification_thresholds_tuned_on_validation": {
+    "listing": 0.5,
+    "7_session": 0.6500000000000001,
+    "30_session": 0.44000000000000006
+  },
   "classification": {
-    "ensemble_auc": 0.7368,
-    "rf_auc": 0.7547,
-    "xgb_auc": 0.722,
+    "ensemble_auc": 0.7549,
+    "rf_auc": 0.7549,
+    "xgb_auc": 0.7322,
     "lgb_auc": 0.7138,
-    "accuracy": 0.7397,
-    "precision": 0.7923,
+    "accuracy": 0.7671,
+    "precision": 0.8175,
     "recall": 0.9035,
-    "f1": 0.8443
+    "f1": 0.8583
   },
   "regression": {
-    "mae": 21.98,
-    "rmse": 31.17,
-    "r2": 0.4224,
+    "mae": 21.97,
+    "rmse": 31.19,
+    "r2": 0.4217,
     "directional_accuracy": 0.7808,
     "rf_mae": 22.17,
     "lgb_mae": 22.1
+  },
+  "horizons": {
+    "7_session": {
+      "validation_sample_size": 92,
+      "baseline_always_positive_acc": 0.6848,
+      "classification": {
+        "ensemble_auc": 0.803,
+        "accuracy": 0.7717,
+        "precision": 0.8621,
+        "recall": 0.7937,
+        "f1": 0.8264
+      },
+      "regression": {
+        "mae": 29.68,
+        "rmse": 37.47,
+        "r2": 0.287,
+        "directional_accuracy": 0.7391
+      }
+    },
+    "30_session": {
+      "validation_sample_size": 92,
+      "baseline_always_positive_acc": 0.663,
+      "classification": {
+        "ensemble_auc": 0.7842,
+        "accuracy": 0.75,
+        "precision": 0.8167,
+        "recall": 0.8033,
+        "f1": 0.8099
+      },
+      "regression": {
+        "mae": 43.13,
+        "rmse": 55.88,
+        "r2": 0.1863,
+        "directional_accuracy": 0.7065
+      }
+    }
   }
 }
