@@ -84,7 +84,10 @@ def run_leakage_audit(
     if not c2_passed: all_passed = False
 
     # Check 3: Date alignment (Listing date strictly >= Close date)
-    date_violations = df_clean[pd.to_datetime(df_clean["listing_date"]) < pd.to_datetime(df_clean["ipo_close_date"])]
+    date_violations = df_clean[
+        pd.to_datetime(df_clean["listing_date"], errors="coerce")
+        < pd.to_datetime(df_clean["ipo_close_date"], errors="coerce")
+    ]
     c3_passed = len(date_violations) == 0
     checks.append({
         "check_id": "L03",

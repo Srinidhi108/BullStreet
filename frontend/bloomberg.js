@@ -8,6 +8,15 @@ let currentIpoData = null;
 let currentPrediction = null;
 let soundEnabled = true;
 
+function displaySymbol(ipo) {
+  const value = ipo && ipo.company_symbol;
+  if (value !== null && value !== undefined && String(value).trim() &&
+      !["nan", "none", "n/a", "nat"].includes(String(value).trim().toLowerCase())) {
+    return String(value).trim();
+  }
+  return ipo && (ipo.ipo_id || ipo.company_name) ? (ipo.ipo_id || ipo.company_name) : "N/A";
+}
+
 // Chart Instances
 let shapChart = null;
 let trajectoryChart = null;
@@ -226,7 +235,7 @@ async function searchIpos(query) {
 
       item.innerHTML = `
         <div class="bbg-item-row1">
-          <span class="bbg-item-ticker">${ipo.ipo_id} [${ipo.company_symbol || "N/A"}]</span>
+          <span class="bbg-item-ticker">${ipo.ipo_id} [${displaySymbol(ipo)}]</span>
           <span class="${retClass}">${retSign}${ipo.actual_return_pct}%</span>
         </div>
         <div class="bbg-item-row2">
@@ -288,7 +297,7 @@ async function selectIpo(ipoId) {
 
 // Render Header Security Metadata
 function renderSecurityHeader(data) {
-  document.getElementById("secTitle").innerText = `${data.company_name.toUpperCase()} [${data.company_symbol || data.ipo_id}]`;
+  document.getElementById("secTitle").innerText = `${data.company_name.toUpperCase()} [${displaySymbol(data)}]`;
   document.getElementById("secSegment").innerText = `${data.listing_segment.toUpperCase()} | ${data.exchange || "NSE/BSE"}`;
   document.getElementById("metaSector").innerText = data.sector || "General Industry";
   document.getElementById("metaDates").innerText = `${data.ipo_open_date} - ${data.ipo_close_date}`;
@@ -328,14 +337,19 @@ function renderPredictionResults(data, pred) {
   retEl.className = isRetPos ? "bbg-big-metric green" : "bbg-big-metric red";
 
   document.getElementById("predClosePrice").innerText = `₹${reg.projected_close_price.toFixed(2)}`;
-  document.getElementById("predOpenReturn").innerText = `${reg.expected_opening_gain_pct >= 0 ? "+" : ""}${reg.expected_opening_gain_pct}%`;
+  const openReturnEl = document.getElementById("predOpenReturn");
+  openReturnEl.innerText = `${reg.expected_opening_gain_pct >= 0 ? "+" : ""}${reg.expected_opening_gain_pct}%`;
+  openReturnEl.style.color = reg.expected_opening_gain_pct < 0 ? "var(--bbg-red)" : "var(--bbg-green)";
   document.getElementById("predConfInterval").innerText = `[ ${reg.confidence_interval_pct[0]}% to ${reg.confidence_interval_pct[1]}% ]`;
 
   // Trained 7-session and 30-session horizon models
   const h = reg.horizon_forecast || {};
   const setHorizonValue = (id, value) => {
     const el = document.getElementById(id);
-    if (el) el.innerText = `${value >= 0 ? "+" : ""}${value}%`;
+    if (!el || value === null || value === undefined || Number.isNaN(Number(value))) return;
+    const numericValue = Number(value);
+    el.innerText = `${numericValue >= 0 ? "+" : ""}${numericValue}%`;
+    el.style.color = numericValue < 0 ? "var(--bbg-red)" : "var(--bbg-green)";
   };
   const setProbability = (id, value) => {
     const el = document.getElementById(id);
@@ -429,7 +443,13 @@ function renderCharts(data, pred) {
           borderColor: "#ff9900",
           backgroundColor: "rgba(255, 153, 0, 0.1)",
           borderWidth: 2,
-          pointBackgroundColor: "#00e5ff",
+          pointBackgroundColor: [
+            "#00e5ff",
+            reg.expected_opening_gain_pct < 0 ? "#ff3344" : "#00ff66",
+            reg.expected_listing_return_pct < 0 ? "#ff3344" : "#00ff66",
+            h.session_7_pct < 0 ? "#ff3344" : "#00ff66",
+            h.session_30_pct < 0 ? "#ff3344" : "#00ff66",
+          ],
           pointBorderColor: "#ffffff",
           pointRadius: 4,
           tension: 0.25,

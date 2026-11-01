@@ -3,62 +3,133 @@
   "test_rows": 147,
   "listing_day": {
     "classification": {
-      "roc_auc": 0.7029,
-      "accuracy": 0.8299,
-      "balanced_accuracy": 0.5635,
-      "precision": 0.8741,
-      "recall": 0.9365,
-      "f1": 0.9042,
-      "threshold": 0.5,
-      "always_positive_baseline_accuracy": 0.8571,
-      "sample_size": 147
+      "roc_auc": 0.7702,
+      "pr_auc": 0.9392,
+      "accuracy": 0.8095,
+      "balanced_accuracy": 0.6508,
+      "precision": 0.9016,
+      "recall": 0.873,
+      "f1": 0.8871,
+      "brier_score": 0.116,
+      "positive_prevalence": 0.8571,
+      "always_positive_accuracy": 0.8571,
+      "majority_accuracy": 0.8571,
+      "predicted_positive_rate": 0.8299,
+      "calibration_bins": [
+        {
+          "mean_predicted": 0.5512498834766465,
+          "observed_rate": 0.25,
+          "count": 4
+        },
+        {
+          "mean_predicted": 0.7385725240851027,
+          "observed_rate": 0.7894736842105263,
+          "count": 76
+        },
+        {
+          "mean_predicted": 0.8309486194929167,
+          "observed_rate": 0.9701492537313433,
+          "count": 67
+        }
+      ],
+      "sample_size": 147,
+      "threshold": 0.7100000000000002
     },
     "regression": {
-      "mae": 31.72,
-      "rmse": 42.69,
-      "r2": 0.2937,
+      "mae": 30.78,
+      "median_absolute_error": 21.46,
+      "rmse": 41.87,
+      "r2": 0.3206,
       "directional_accuracy": 0.8571,
-      "sample_size": 147
+      "sample_size": 147,
+      "baseline_mean_mae": 39.25,
+      "baseline_median_mae": 35.69,
+      "beats_mean_baseline": true,
+      "beats_median_baseline": true
     }
   },
   "7_session": {
     "classification": {
-      "roc_auc": 0.6642,
-      "accuracy": 0.6581,
-      "balanced_accuracy": 0.6222,
-      "precision": 0.8378,
+      "roc_auc": 0.7004,
+      "pr_auc": 0.8857,
+      "accuracy": 0.6667,
+      "balanced_accuracy": 0.6407,
+      "precision": 0.8493,
       "recall": 0.6889,
-      "f1": 0.7561,
-      "threshold": 0.6500000000000001,
-      "always_positive_baseline_accuracy": 0.7692,
-      "sample_size": 117
+      "f1": 0.7607,
+      "brier_score": 0.2523,
+      "positive_prevalence": 0.7692,
+      "always_positive_accuracy": 0.7692,
+      "majority_accuracy": 0.7692,
+      "predicted_positive_rate": 0.6239,
+      "calibration_bins": [
+        {
+          "mean_predicted": 0.37761267192278924,
+          "observed_rate": 0.5,
+          "count": 18
+        },
+        {
+          "mean_predicted": 0.49401141538717064,
+          "observed_rate": 0.8181818181818182,
+          "count": 99
+        }
+      ],
+      "sample_size": 117,
+      "threshold": 0.4700000000000001
     },
     "regression": {
-      "mae": 45.73,
-      "rmse": 65.71,
-      "r2": 0.0179,
-      "directional_accuracy": 0.735,
-      "sample_size": 117
+      "mae": 43.07,
+      "median_absolute_error": 26.6,
+      "rmse": 63.1,
+      "r2": 0.0943,
+      "directional_accuracy": 0.6581,
+      "sample_size": 117,
+      "baseline_mean_mae": 46.65,
+      "baseline_median_mae": 43.94,
+      "beats_mean_baseline": true,
+      "beats_median_baseline": true
     }
   },
   "30_session": {
     "classification": {
-      "roc_auc": 0.6165,
-      "accuracy": 0.6838,
-      "balanced_accuracy": 0.6142,
-      "precision": 0.7831,
-      "recall": 0.7738,
-      "f1": 0.7784,
-      "threshold": 0.44000000000000006,
-      "always_positive_baseline_accuracy": 0.7179,
-      "sample_size": 117
+      "roc_auc": 0.6778,
+      "pr_auc": 0.8076,
+      "accuracy": 0.6581,
+      "balanced_accuracy": 0.6423,
+      "precision": 0.8143,
+      "recall": 0.6786,
+      "f1": 0.7403,
+      "brier_score": 0.2767,
+      "positive_prevalence": 0.7179,
+      "always_positive_accuracy": 0.7179,
+      "majority_accuracy": 0.7179,
+      "predicted_positive_rate": 0.5983,
+      "calibration_bins": [
+        {
+          "mean_predicted": 0.38833235935864446,
+          "observed_rate": 0.52,
+          "count": 25
+        },
+        {
+          "mean_predicted": 0.44557839210744066,
+          "observed_rate": 0.7717391304347826,
+          "count": 92
+        }
+      ],
+      "sample_size": 117,
+      "threshold": 0.42000000000000004
     },
     "regression": {
-      "mae": 58.79,
-      "rmse": 83.56,
-      "r2": -0.0124,
-      "directional_accuracy": 0.6752,
-      "sample_size": 117
+      "mae": 57.42,
+      "median_absolute_error": 37.34,
+      "rmse": 82.26,
+      "r2": 0.0189,
+      "directional_accuracy": 0.6325,
+      "sample_size": 117,
+      "baseline_mean_mae": 60.83,
+      "baseline_median_mae": 58.13,
+      "beats_mean_baseline": true,
+      "beats_median_baseline": true
     }
   }
 }

@@ -42,3 +42,20 @@ pytest tests/test_pipeline.py -v
 - Close any `.csv` files in spreadsheet viewers before rebuilding.
 - Always use `--fetch-extended` with `clean`.
 - Never run `--stage collect` (raw datasets are frozen and preserved).
+
+## 4. Generalization-safe retraining
+
+The trainer now selects models and thresholds with rolling time-series CV on
+`data/splits/train.csv`. Validation is report-only and `test.csv` is a frozen
+final audit set.
+
+```bash
+python main.py --stage split
+python -m src.model_engine
+python evaluate_holdout.py
+python -m pytest -q
+```
+
+Review `reports/model_performance_report.json` for rolling-CV selection,
+baselines, calibration, coverage, and validation metrics. Review
+`reports/test_holdout_report.json` only after decisions are frozen.

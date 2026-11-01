@@ -21,6 +21,8 @@ from sklearn.metrics import (
 
 from src.model_engine import engine, FEATURE_NAMES
 from src.preprocessor import prepare_modeling_dataset
+from src.generalization import classification_metrics as rich_classification_metrics
+from src.generalization import regression_metrics as rich_regression_metrics
 
 
 TEST_PATH = "data/splits/test.csv"
@@ -28,35 +30,21 @@ REPORT_PATH = "reports/test_holdout_report.json"
 
 
 def classification_metrics(y_true, probabilities, threshold):
-    predictions = (probabilities >= threshold).astype(int)
-    return {
-        "roc_auc": round(float(roc_auc_score(y_true, probabilities)), 4),
-        "accuracy": round(float(accuracy_score(y_true, predictions)), 4),
-        "balanced_accuracy": round(float(balanced_accuracy_score(y_true, predictions)), 4),
-        "precision": round(float(precision_score(y_true, predictions, zero_division=0)), 4),
-        "recall": round(float(recall_score(y_true, predictions, zero_division=0)), 4),
-        "f1": round(float(f1_score(y_true, predictions, zero_division=0)), 4),
-        "threshold": threshold,
-        "always_positive_baseline_accuracy": round(float((y_true == 1).mean()), 4),
-        "sample_size": int(len(y_true)),
-    }
+    result = rich_classification_metrics(y_true, probabilities, threshold)
+    return {k: (round(v, 4) if isinstance(v, float) else v) for k, v in result.items()} | {"threshold": threshold}
 
 
 def regression_metrics(y_true, predictions):
-    return {
-        "mae": round(float(mean_absolute_error(y_true, predictions)), 2),
-        "rmse": round(float(np.sqrt(mean_squared_error(y_true, predictions))), 2),
-        "r2": round(float(r2_score(y_true, predictions)), 4),
-        "directional_accuracy": round(float(np.mean((predictions > 0) == (y_true > 0))), 4),
-        "sample_size": int(len(y_true)),
-    }
+    result = rich_regression_metrics(y_true, predictions)
+    return {k: (round(v, 4) if k in {"r2", "directional_accuracy"} else round(v, 2) if isinstance(v, float) else v) for k, v in result.items()}
 
 
 def evaluate_horizon(df, prefix, return_target, classification_threshold):
     X_reg, y_reg, _ = prepare_modeling_dataset(df, task={"7": "7_session", "30": "30_session"}[prefix])
     X_cls = X_reg
     y_cls = (y_reg > 0).astype(int)
-    X_reg_t = engine.preprocessor.transform(X_reg)
+    prep = engine.horizon_preprocessors.get(prefix, engine.preprocessor)
+    X_reg_t = prep.transform(X_reg[prep.num_cols + prep.cat_cols])
 
     if prefix == "7":
         cal = engine.clf_7_cal
@@ -108,7 +96,7 @@ def main():
     X_reg_t = engine.preprocessor.transform(X_reg)
     weights = engine.ensemble_weights["listing"]
     listing_prob = (
-        weights["cal"] * engine.clf_rf.predict_proba(X_cls_t)[:, 1]
+        weights["cal"] * engine.clf_cal.predict_proba(X_cls_t)[:, 1]
         + weights["xgb"] * engine.clf_xgb.predict_proba(X_cls_t)[:, 1]
         + weights["lgb"] * engine.clf_lgb.predict_proba(X_cls_t)[:, 1]
     )

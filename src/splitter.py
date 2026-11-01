@@ -43,6 +43,12 @@ def create_chronological_splits(
     df_eligible = df_eligible.sort_values(
         by=["_listing_date_sort", "company_name"]
     ).reset_index(drop=True)
+    # Store canonical ISO dates in every split so downstream validators and
+    # consumers cannot accidentally compare DD-MM-YY strings lexicographically.
+    for date_col in ["ipo_open_date", "ipo_close_date", "listing_date"]:
+        if date_col in df_eligible.columns:
+            parsed = pd.to_datetime(df_eligible[date_col], dayfirst=True, errors="coerce")
+            df_eligible[date_col] = parsed.dt.strftime("%Y-%m-%d")
     df_eligible = df_eligible.drop(columns=["_listing_date_sort"])
     
     n_total = len(df_eligible)

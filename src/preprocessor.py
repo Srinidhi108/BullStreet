@@ -51,6 +51,21 @@ CATEGORICAL_FEATURE_COLS = [
     "sector"
 ]
 
+# Forecast horizons emphasize different information available before listing.
+# These are deliberately conservative profiles; each still retains the core
+# issue and subscription signals needed for a usable fallback.
+HORIZON_FEATURE_COLS = {
+    "listing": NUMERICAL_FEATURE_COLS + CATEGORICAL_FEATURE_COLS,
+    "7": [
+        "issue_price", "total_issue_size_cr", "fresh_issue_pct", "ofs_pct",
+        "qib_subscription", "nii_subscription", "retail_subscription",
+        "total_subscription", "profitable_before_ipo", "nifty_return_5d",
+        "nifty_return_20d", "nifty_volatility_20d", "india_vix", "usd_inr_rate",
+        "listing_segment", "exchange", "sector",
+    ],
+    "30": NUMERICAL_FEATURE_COLS + CATEGORICAL_FEATURE_COLS,
+}
+
 class LeakageFreePreprocessor(BaseEstimator, TransformerMixin):
     """
     Fits imputers, scalers, and frequency encodings on training data only.
@@ -67,7 +82,7 @@ class LeakageFreePreprocessor(BaseEstimator, TransformerMixin):
 
     def fit(self, X: pd.DataFrame, y=None):
         # 1. Fit numerical imputer and scaler on train
-        X_num = X[self.num_cols].copy()
+        X_num = self._engineer_numeric(X[self.num_cols].copy())
         X_num_imp = self.num_imputer.fit_transform(X_num)
         
         # In case some feature had 0 observations in train, imputer fills with 0
@@ -88,7 +103,7 @@ class LeakageFreePreprocessor(BaseEstimator, TransformerMixin):
             raise ValueError("Preprocessor must be fitted before transforming data.")
         
         # Transform numerical
-        X_num = X[self.num_cols].copy()
+        X_num = self._engineer_numeric(X[self.num_cols].copy())
         X_num_imp = self.num_imputer.transform(X_num)
         X_num_imp = np.nan_to_num(X_num_imp, nan=0.0)
         X_num_scaled = self.scaler.transform(X_num_imp)
@@ -105,6 +120,49 @@ class LeakageFreePreprocessor(BaseEstimator, TransformerMixin):
 
         X_cat = np.hstack(cat_arrays) if cat_arrays else np.empty((len(X), 0))
         return np.hstack([X_num_scaled, X_cat])
+
+    @staticmethod
+    def _engineer_numeric(X: pd.DataFrame) -> pd.DataFrame:
+        """Build leakage-safe, pre-listing features for small/regime-sensitive data."""
+        out = X.copy()
+
+        for name in (
+            "total_issue_size_cr", "fresh_issue_amount_cr", "ofs_amount_cr",
+            "revenue_cr", "pat_cr", "total_assets_cr", "total_borrowings_cr",
+            "qib_subscription", "nii_subscription", "retail_subscription",
+            "total_subscription",
+        ):
+            if name in X:
+                values = pd.to_numeric(X[name], errors="coerce")
+                out[f"log_{name}"] = np.log1p(np.clip(values, 0, None))
+
+        def safe_div(a, b, name):
+            if a in X and b in X:
+                den = pd.to_numeric(X[b], errors="coerce").replace(0, np.nan)
+                out[name] = pd.to_numeric(X[a], errors="coerce") / den
+
+        safe_div("qib_subscription", "total_subscription", "qib_share_of_subscription")
+        safe_div("nii_subscription", "total_subscription", "nii_share_of_subscription")
+        safe_div("retail_subscription", "total_subscription", "retail_share_of_subscription")
+        safe_div("pat_cr", "revenue_cr", "pat_to_revenue_ratio")
+        safe_div("total_borrowings_cr", "total_assets_cr", "borrowings_to_assets_ratio")
+        safe_div("total_issue_size_cr", "total_assets_cr", "issue_to_assets_ratio")
+
+        if "qib_subscription" in X and "retail_subscription" in X:
+            out["institutional_retail_gap"] = (
+                np.log1p(np.clip(pd.to_numeric(X["qib_subscription"], errors="coerce"), 0, None))
+                - np.log1p(np.clip(pd.to_numeric(X["retail_subscription"], errors="coerce"), 0, None))
+            )
+        if "nifty_return_5d" in X and "nifty_return_20d" in X:
+            out["market_momentum_acceleration"] = X["nifty_return_5d"] - X["nifty_return_20d"] / 4.0
+        if "nifty_volatility_20d" in X and "india_vix" in X:
+            out["market_stress_score"] = X["nifty_volatility_20d"] + X["india_vix"]
+        if "total_subscription" in X and "retail_subscription" in X:
+            out["subscription_dispersion"] = (
+                np.log1p(np.clip(pd.to_numeric(X["total_subscription"], errors="coerce"), 0, None))
+                - np.log1p(np.clip(pd.to_numeric(X["retail_subscription"], errors="coerce"), 0, None))
+            )
+        return out.replace([np.inf, -np.inf], np.nan)
 
 
 def prepare_modeling_dataset(df: pd.DataFrame, task: str = "classification"):

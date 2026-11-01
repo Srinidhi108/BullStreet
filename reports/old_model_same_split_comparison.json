@@ -1,0 +1,180 @@
+{
+  "protocol": "same current train/validation/test; old weights and thresholds selected on validation only",
+  "old_architecture": {
+    "listing": {
+      "classification": {
+        "auc": 0.7245,
+        "pr_auc": 0.9286,
+        "accuracy": 0.8571,
+        "balanced_accuracy": 0.5,
+        "brier": 0.1214,
+        "precision": 0.8571,
+        "recall": 1.0,
+        "f1": 0.9231,
+        "threshold": 0.5,
+        "n": 147
+      },
+      "validation_threshold": 0.5,
+      "validation_weights": [
+        1.0,
+        0.0,
+        0.0
+      ],
+      "regression": {
+        "mae": 31.72,
+        "median_ae": 24.26,
+        "rmse": 42.69,
+        "r2": 0.2937,
+        "directional_accuracy": 0.8571,
+        "n": 147
+      }
+    },
+    "7": {
+      "classification": {
+        "auc": 0.6642,
+        "pr_auc": 0.8656,
+        "accuracy": 0.6581,
+        "balanced_accuracy": 0.6222,
+        "brier": 0.1767,
+        "precision": 0.8378,
+        "recall": 0.6889,
+        "f1": 0.7561,
+        "threshold": 0.6500000000000001,
+        "n": 117
+      },
+      "validation_threshold": 0.6500000000000001,
+      "validation_weights": [
+        0.05,
+        0.2,
+        0.75
+      ],
+      "regression": {
+        "mae": 45.73,
+        "median_ae": 26.12,
+        "rmse": 65.71,
+        "r2": 0.0179,
+        "directional_accuracy": 0.735,
+        "n": 117
+      }
+    },
+    "30": {
+      "classification": {
+        "auc": 0.6165,
+        "pr_auc": 0.7832,
+        "accuracy": 0.6838,
+        "balanced_accuracy": 0.6142,
+        "brier": 0.2645,
+        "precision": 0.7831,
+        "recall": 0.7738,
+        "f1": 0.7784,
+        "threshold": 0.44000000000000006,
+        "n": 117
+      },
+      "validation_threshold": 0.44000000000000006,
+      "validation_weights": [
+        0.8,
+        0.0,
+        0.2
+      ],
+      "regression": {
+        "mae": 58.79,
+        "median_ae": 37.53,
+        "rmse": 83.56,
+        "r2": -0.0124,
+        "directional_accuracy": 0.6752,
+        "n": 117
+      }
+    }
+  },
+  "current_model": {
+    "test_file": "data/splits/test.csv",
+    "test_rows": 147,
+    "listing_day": {
+      "classification": {
+        "roc_auc": 0.7286,
+        "pr_auc": 0.9321,
+        "accuracy": 0.8163,
+        "balanced_accuracy": 0.5556,
+        "precision": 0.8722,
+        "recall": 0.9206,
+        "f1": 0.8958,
+        "brier_score": 0.1208,
+        "positive_prevalence": 0.8571,
+        "always_positive_accuracy": 0.8571,
+        "majority_accuracy": 0.8571,
+        "sample_size": 147,
+        "threshold": 0.7200000000000002
+      },
+      "regression": {
+        "mae": 35.51,
+        "median_absolute_error": 17.31,
+        "rmse": 56.7,
+        "r2": -0.246,
+        "directional_accuracy": 0.8571,
+        "sample_size": 147,
+        "baseline_mean_mae": 39.25,
+        "baseline_median_mae": 35.69,
+        "beats_mean_baseline": true,
+        "beats_median_baseline": true
+      }
+    },
+    "7_session": {
+      "classification": {
+        "roc_auc": 0.607,
+        "pr_auc": 0.8426,
+        "accuracy": 0.7692,
+        "balanced_accuracy": 0.5,
+        "precision": 0.7692,
+        "recall": 1.0,
+        "f1": 0.8696,
+        "brier_score": 0.3546,
+        "positive_prevalence": 0.7692,
+        "always_positive_accuracy": 0.7692,
+        "majority_accuracy": 0.7692,
+        "sample_size": 117,
+        "threshold": 0.25
+      },
+      "regression": {
+        "mae": 44.22,
+        "median_absolute_error": 25.14,
+        "rmse": 64.55,
+        "r2": 0.0523,
+        "directional_accuracy": 0.6838,
+        "sample_size": 117,
+        "baseline_mean_mae": 46.65,
+        "baseline_median_mae": 43.94,
+        "beats_mean_baseline": true,
+        "beats_median_baseline": false
+      }
+    },
+    "30_session": {
+      "classification": {
+        "roc_auc": 0.6735,
+        "pr_auc": 0.8546,
+        "accuracy": 0.7179,
+        "balanced_accuracy": 0.5,
+        "precision": 0.7179,
+        "recall": 1.0,
+        "f1": 0.8358,
+        "brier_score": 0.3019,
+        "positive_prevalence": 0.7179,
+        "always_positive_accuracy": 0.7179,
+        "majority_accuracy": 0.7179,
+        "sample_size": 117,
+        "threshold": 0.30000000000000004
+      },
+      "regression": {
+        "mae": 57.62,
+        "median_absolute_error": 37.61,
+        "rmse": 82.26,
+        "r2": 0.0189,
+        "directional_accuracy": 0.6667,
+        "sample_size": 117,
+        "baseline_mean_mae": 60.83,
+        "baseline_median_mae": 58.13,
+        "beats_mean_baseline": true,
+        "beats_median_baseline": true
+      }
+    }
+  }
+}

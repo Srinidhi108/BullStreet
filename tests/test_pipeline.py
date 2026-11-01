@@ -9,6 +9,7 @@ from src.preprocessor import (
     NUMERICAL_FEATURE_COLS,
     CATEGORICAL_FEATURE_COLS
 )
+from src.preprocessor import HORIZON_FEATURE_COLS
 from src.leakage_auditor import run_leakage_audit, TARGET_COLUMNS
 
 def test_seven_csv_files_exist():
@@ -108,3 +109,18 @@ def test_preprocessor_training_only_fit():
 def test_leakage_audit_passes():
     passed = run_leakage_audit()
     assert passed is True, "Dataset failed automated leakage audit"
+
+def test_horizon_feature_profiles_are_valid():
+    feature_set = set(NUMERICAL_FEATURE_COLS + CATEGORICAL_FEATURE_COLS)
+    for horizon, profile in HORIZON_FEATURE_COLS.items():
+        assert set(profile).issubset(feature_set), f"Unknown feature in {horizon} profile"
+        assert not set(profile).intersection(set(TARGET_COLUMNS)), f"Target leaked into {horizon} profile"
+
+def test_holdout_horizon_predictions_are_not_degenerate():
+    import json
+    with open("reports/test_holdout_report.json", "r") as handle:
+        report = json.load(handle)
+    for horizon in ("7_session", "30_session"):
+        metrics = report[horizon]["classification"]
+        assert 0.0 < metrics["predicted_positive_rate"] < 0.9
+        assert metrics["balanced_accuracy"] > 0.5

@@ -20,7 +20,9 @@ def parse_date_safe(val):
     if pd.isna(val) or str(val).strip() in ["", ".", "[.]", "None", "nan", "NaT"]:
         return None
     try:
-        return parser.parse(str(val)).strftime("%Y-%m-%d")
+        # Source files use Indian DD-MM-YY dates. Explicit day-first parsing
+        # prevents dates such as 05-03-15 from becoming 2015-05-03.
+        return parser.parse(str(val), dayfirst=True).strftime("%Y-%m-%d")
     except Exception:
         return None
 
@@ -35,7 +37,7 @@ def parse_open_from_range(val):
             m_year = re.search(r"\b(20\d\d)\b", second)
             if not re.search(r"\b(20\d\d)\b", first) and m_year:
                 first = f"{first}, {m_year.group(1)}"
-            return parser.parse(first).strftime("%Y-%m-%d")
+            return parser.parse(first, dayfirst=True).strftime("%Y-%m-%d")
         except Exception:
             return None
     return parse_date_safe(val)

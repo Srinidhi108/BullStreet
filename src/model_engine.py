@@ -41,6 +41,7 @@ from src.preprocessor import (
     prepare_modeling_dataset,
     NUMERICAL_FEATURE_COLS,
     CATEGORICAL_FEATURE_COLS,
+    HORIZON_FEATURE_COLS,
 )
 
 warnings.filterwarnings("ignore")
@@ -61,6 +62,7 @@ class IPOModelEngine:
 
     def __init__(self):
         self.preprocessor: LeakageFreePreprocessor = None
+        self.horizon_preprocessors: Dict[str, LeakageFreePreprocessor] = {}
         self.clf_rf = None
         self.clf_xgb = None
         self.clf_lgb = None
@@ -81,6 +83,7 @@ class IPOModelEngine:
         self.reg_30_lgb = None
         self.ensemble_weights = {}
         self.classification_thresholds = {}
+        self.horizon_prior_corrections = {}
         self.explainer = None
         self.benchmarks: Dict[str, Any] = {}
         self.historical_db: pd.DataFrame = None
@@ -168,6 +171,10 @@ class IPOModelEngine:
         Fits dual classification and regression pipelines on training split,
         evaluates on validation split without leakage, and stores benchmarks.
         """
+        # All model/threshold/weight decisions are made by rolling CV inside
+        # train.csv. Validation is report-only and test.csv is never touched.
+        return self._train_with_rolling_cv(train_path, val_path, clean_master_path)
+
         logger.info("Loading training and validation partitions...")
         train_df = pd.read_csv(train_path)
         val_df = pd.read_csv(val_path)
@@ -436,11 +443,181 @@ class IPOModelEngine:
         self.save_artifacts()
         return self.benchmarks
 
+    def _train_with_rolling_cv(self, train_path, val_path, clean_master_path):
+        from src.generalization import (
+            select_with_rolling_cv, classification_metrics, regression_metrics,
+            _clf_candidates, _reg_candidates, clone_estimator,
+        )
+        from src.preprocessor import NUMERICAL_FEATURE_COLS, CATEGORICAL_FEATURE_COLS
+
+        train_df = pd.read_csv(train_path)
+        val_df = pd.read_csv(val_path)
+        all_features = NUMERICAL_FEATURE_COLS + CATEGORICAL_FEATURE_COLS
+        self.historical_db = pd.read_csv(clean_master_path) if os.path.exists(clean_master_path) else train_df.copy()
+        self.preprocessor = LeakageFreePreprocessor().fit(train_df[HORIZON_FEATURE_COLS["listing"]])
+        self.horizon_preprocessors = {
+            prefix: LeakageFreePreprocessor(
+                num_cols=[c for c in HORIZON_FEATURE_COLS[prefix] if c in NUMERICAL_FEATURE_COLS],
+                cat_cols=[c for c in HORIZON_FEATURE_COLS[prefix] if c in CATEGORICAL_FEATURE_COLS],
+            ).fit(train_df[HORIZON_FEATURE_COLS[prefix]])
+            for prefix in ("7", "30")
+        }
+
+        selections = {}
+        for label, target, task in [
+            ("listing", "listing_day_close_return_pct", "regression"),
+            ("listing_classification", "listing_day_close_return_pct", "classification"),
+            ("7_session", "return_7th_session_pct", "regression"),
+            ("7_classification", "return_7th_session_pct", "classification"),
+            ("30_session", "return_30th_session_pct", "regression"),
+            ("30_classification", "return_30th_session_pct", "classification"),
+        ]:
+            logger.info("Rolling CV model selection: %s", label)
+            profile = "listing" if label.startswith("listing") else label.split("_")[0]
+            recency = None if label == "30_classification" else 180.0
+            selections[label] = select_with_rolling_cv(
+                train_df, target, task,
+                feature_cols=HORIZON_FEATURE_COLS[profile],
+                recency_half_life=recency,
+                prefer_simpler=(label == "30_classification"),
+            )
+
+        def fit_selected(selection, target, task, prep):
+            sub = train_df.dropna(subset=[target]).copy()
+            feature_cols = prep.num_cols + prep.cat_cols
+            X = prep.transform(sub[feature_cols])
+            y = sub[target].astype(float).to_numpy()
+            if task == "classification":
+                y = (y > 0).astype(int)
+                model = clone_estimator(_clf_candidates(y)[selection["selected_model"]])
+                if selection.get("recency_half_life"):
+                    dates = pd.to_datetime(sub["listing_date"], dayfirst=True, errors="coerce")
+                    age_days = (dates.max() - dates).dt.days.to_numpy()
+                    weights = np.power(0.5, np.maximum(age_days, 0) / selection["recency_half_life"])
+                    model.fit(X, y, sample_weight=weights)
+                else:
+                    model.fit(X, y)
+                calibrated = CalibratedClassifierCV(model, method="sigmoid", cv=3).fit(X, y)
+                return model, calibrated
+            model = clone_estimator(_reg_candidates()[selection["selected_model"]])
+            model.fit(X, y)
+            return model, None
+
+        self.clf_rf, self.clf_cal = fit_selected(selections["listing_classification"], "listing_day_close_return_pct", "classification", self.preprocessor)
+        self.clf_xgb = self.clf_rf
+        self.clf_lgb = self.clf_rf
+        self.reg_rf, _ = fit_selected(selections["listing"], "listing_day_close_return_pct", "regression", self.preprocessor)
+        self.reg_lgb = self.reg_rf
+        self.ensemble_weights = {
+            "listing": {"cal": 1.0, "xgb": 0.0, "lgb": 0.0},
+            "listing_regression_rf": 1.0,
+        }
+        self.classification_thresholds = {"listing": selections["listing_classification"]["threshold"] or 0.5}
+        for prefix in ("7", "30"):
+            csel = selections[f"{prefix}_classification"]
+            rsel = selections[f"{prefix}_session"]
+            prep = self.horizon_preprocessors[prefix]
+            cmodel, ccal = fit_selected(csel, f"return_{prefix}th_session_pct", "classification", prep)
+            rmodel, _ = fit_selected(rsel, f"return_{prefix}th_session_pct", "regression", prep)
+            setattr(self, f"clf_{prefix}_rf", cmodel)
+            setattr(self, f"clf_{prefix}_xgb", cmodel)
+            setattr(self, f"clf_{prefix}_lgb", cmodel)
+            setattr(self, f"clf_{prefix}_cal", ccal)
+            setattr(self, f"reg_{prefix}_rf", rmodel)
+            setattr(self, f"reg_{prefix}_lgb", rmodel)
+            self.ensemble_weights[f"{prefix}_session"] = {"cal": 1.0, "xgb": 0.0, "lgb": 0.0}
+            self.ensemble_weights[f"{prefix}_regression_rf"] = 1.0
+            self.classification_thresholds[f"{prefix}_session"] = csel["threshold"] or 0.5
+            self.horizon_prior_corrections[prefix] = csel.get("prior_correction") or {"source": 0.5, "target": 0.5}
+
+        # Opening gain is retained for UI compatibility; it is not part of
+        # the new horizon selection objective.
+        open_sub = train_df.dropna(subset=["listing_opening_gain_pct"])
+        self.reg_open = LGBMRegressor(n_estimators=100, max_depth=3, learning_rate=0.03,
+            min_child_samples=20, reg_lambda=5.0, random_state=42, verbose=-1).fit(
+                self.preprocessor.transform(open_sub[all_features]), open_sub["listing_opening_gain_pct"].astype(float)
+            ) if len(open_sub) else None
+        self.explainer = shap.TreeExplainer(self.clf_rf)
+
+        def report_partition(frame):
+            result = {}
+            def classification_for(target, prefix, threshold):
+                sub = frame.dropna(subset=[target])
+                if sub.empty: return {"sample_size": 0}
+                prep = self.preprocessor if not prefix else self.horizon_preprocessors[prefix]
+                X = prep.transform(sub[prep.num_cols + prep.cat_cols]); y = (sub[target].astype(float).to_numpy() > 0).astype(int)
+                model = getattr(self, f"clf_{prefix}_cal") if prefix else self.clf_cal
+                probabilities = model.predict_proba(X)[:, 1]
+                return classification_metrics(y, probabilities, threshold)
+            def regression_for(target, prefix):
+                sub = frame.dropna(subset=[target])
+                if sub.empty: return {"sample_size": 0}
+                prep = self.preprocessor if not prefix else self.horizon_preprocessors[prefix]
+                X = prep.transform(sub[prep.num_cols + prep.cat_cols]); y = sub[target].astype(float).to_numpy()
+                model = getattr(self, f"reg_{prefix}_rf") if prefix else self.reg_rf
+                return regression_metrics(y, model.predict(X))
+            result["listing_day"] = {"classification": classification_for("listing_day_close_return_pct", "", self.classification_thresholds["listing"]),
+                                     "regression": regression_for("listing_day_close_return_pct", "")}
+            for prefix in ("7", "30"):
+                target = f"return_{prefix}th_session_pct"
+                result[f"{prefix}_session"] = {"classification": classification_for(target, prefix, self.classification_thresholds[f"{prefix}_session"]),
+                                                "regression": regression_for(target, prefix)}
+            return result
+
+        validation = report_partition(val_df)
+        quality = self._data_quality_report(clean_master_path)
+        cv_report = {}
+        for key, value in selections.items():
+            cv_report[key] = {k: v for k, v in value.items() if k not in ("oof_y", "oof_p", "features")}
+        self.benchmarks = {
+            "selection_policy": "rolling_time_series_cv_on_train_only",
+            "test_policy": "frozen_final_audit_only",
+            "validation": validation,
+            "rolling_cv": cv_report,
+            "data_quality": quality,
+            # Legacy fields retained for the existing UI benchmark cards.
+            "validation_sample_size": int(len(val_df)),
+            "classification": {"ensemble_auc": validation["listing_day"]["classification"].get("roc_auc")},
+            "regression": validation["listing_day"]["regression"],
+            "horizons": {k: v for k, v in validation.items() if k != "listing_day"},
+            "ensemble_weights": self.ensemble_weights,
+            "classification_thresholds": self.classification_thresholds,
+            "horizon_prior_corrections": self.horizon_prior_corrections,
+        }
+        self.fitted_ = True
+        self.save_artifacts()
+        return self.benchmarks
+
+    @staticmethod
+    def _data_quality_report(path):
+        if not os.path.exists(path):
+            return {"error": "clean master not found"}
+        df = pd.read_csv(path)
+        result = {"rows": int(len(df)), "coverage": {}, "coverage_by_year": {}, "coverage_by_exchange": {}}
+        for prefix, close, ret in [("7", "close_price_7th_session", "return_7th_session_pct"),
+                                   ("30", "close_price_30th_session", "return_30th_session_pct")]:
+            result["coverage"][prefix] = {"valid_return_rows": int(df[ret].notna().sum()),
+                                           "valid_close_rows": int(df[close].notna().sum()) if close in df else 0}
+            if close in df:
+                both = df[["issue_price", close, ret]].dropna()
+                expected = (both[close] - both["issue_price"]) / both["issue_price"] * 100
+                result["coverage"][prefix]["return_close_mismatch_count"] = int((abs(expected - both[ret]) > 0.05).sum())
+        dates = pd.to_datetime(df.get("listing_date"), dayfirst=True, errors="coerce")
+        temp = df.assign(__year=dates.dt.year)
+        for year, group in temp.groupby("__year", dropna=True):
+            result["coverage_by_year"][str(int(year))] = {"rows": int(len(group)), "7_valid": int(group["return_7th_session_pct"].notna().sum()), "30_valid": int(group["return_30th_session_pct"].notna().sum())}
+        if "exchange" in df:
+            for exchange, group in df.groupby("exchange", dropna=False):
+                result["coverage_by_exchange"][str(exchange)] = {"rows": int(len(group)), "7_valid": int(group["return_7th_session_pct"].notna().sum()), "30_valid": int(group["return_30th_session_pct"].notna().sum())}
+        result["missing_targets_kept_missing"] = True
+        return result
+
     def save_artifacts(self, bundle_path: str = BUNDLE_PATH):
         """Saves fitted models and metadata."""
         os.makedirs(os.path.dirname(bundle_path), exist_ok=True)
         bundle = {
             "preprocessor": self.preprocessor,
+            "horizon_preprocessors": self.horizon_preprocessors,
             "clf_rf": self.clf_rf,
             "clf_xgb": self.clf_xgb,
             "clf_lgb": self.clf_lgb,
@@ -462,6 +639,7 @@ class IPOModelEngine:
             "reg_30_lgb": self.reg_30_lgb,
             "ensemble_weights": self.ensemble_weights,
             "classification_thresholds": self.classification_thresholds,
+            "horizon_prior_corrections": self.horizon_prior_corrections,
             "explainer": self.explainer,
             "benchmarks": self.benchmarks,
             "historical_db": self.historical_db,
@@ -480,6 +658,7 @@ class IPOModelEngine:
             return False
         bundle = joblib.load(bundle_path)
         self.preprocessor = bundle["preprocessor"]
+        self.horizon_preprocessors = bundle.get("horizon_preprocessors", {})
         self.clf_rf = bundle["clf_rf"]
         self.clf_xgb = bundle["clf_xgb"]
         self.clf_lgb = bundle["clf_lgb"]
@@ -501,6 +680,7 @@ class IPOModelEngine:
         self.reg_30_lgb = bundle.get("reg_30_lgb")
         self.ensemble_weights = bundle.get("ensemble_weights", {})
         self.classification_thresholds = bundle.get("classification_thresholds", {})
+        self.horizon_prior_corrections = bundle.get("horizon_prior_corrections", {})
         self.explainer = bundle["explainer"]
         self.benchmarks = bundle.get("benchmarks", {})
         self.historical_db = bundle.get("historical_db")
@@ -522,7 +702,8 @@ class IPOModelEngine:
             if col not in df_row.columns:
                 df_row[col] = np.nan
 
-        X_trans = self.preprocessor.transform(df_row[FEATURE_NAMES])
+        listing_features = self.preprocessor.num_cols + self.preprocessor.cat_cols
+        X_trans = self.preprocessor.transform(df_row[listing_features])
 
         # 1. Classification Predictions
         p_rf = float(self.clf_rf.predict_proba(X_trans)[:, 1][0])
@@ -531,14 +712,17 @@ class IPOModelEngine:
         p_cal = float(self.clf_cal.predict_proba(X_trans)[:, 1][0])
 
         def horizon_probability(prefix: str) -> tuple[float, float]:
+            prep = self.horizon_preprocessors.get(prefix, self.preprocessor)
+            horizon_features = prep.num_cols + prep.cat_cols
+            X_horizon = prep.transform(df_row[horizon_features])
             rf = getattr(self, f"clf_{prefix}_rf")
             xgb = getattr(self, f"clf_{prefix}_xgb")
             lgb = getattr(self, f"clf_{prefix}_lgb")
             cal = getattr(self, f"clf_{prefix}_cal")
-            p_rf_h = float(rf.predict_proba(X_trans)[:, 1][0])
-            p_xgb_h = float(xgb.predict_proba(X_trans)[:, 1][0])
-            p_lgb_h = float(lgb.predict_proba(X_trans)[:, 1][0])
-            p_cal_h = float(cal.predict_proba(X_trans)[:, 1][0])
+            p_rf_h = float(rf.predict_proba(X_horizon)[:, 1][0])
+            p_xgb_h = float(xgb.predict_proba(X_horizon)[:, 1][0])
+            p_lgb_h = float(lgb.predict_proba(X_horizon)[:, 1][0])
+            p_cal_h = float(cal.predict_proba(X_horizon)[:, 1][0])
             hweights = self.ensemble_weights.get(f"{prefix}_session", {"cal": 0.40, "xgb": 0.35, "lgb": 0.25})
             probability = float(np.clip(
                 hweights["cal"] * p_cal_h + hweights["xgb"] * p_xgb_h + hweights["lgb"] * p_lgb_h,
@@ -552,9 +736,9 @@ class IPOModelEngine:
         
         # Blended calibrated win probability
         weights = self.ensemble_weights.get("listing", {"cal": 0.40, "xgb": 0.35, "lgb": 0.25})
-        # Listing-day behavior uses the original Random Forest/XGBoost/LightGBM
-        # probability blend; calibrated RF remains available for horizon models.
-        win_prob = weights["cal"] * p_rf + weights["xgb"] * p_xgb + weights["lgb"] * p_lgb
+        # Use the cross-validated calibrated probability for listing day too.
+        # The stored weights remain compatible with the existing API bundle.
+        win_prob = weights["cal"] * p_cal + weights["xgb"] * p_xgb + weights["lgb"] * p_lgb
         win_prob = np.clip(win_prob, 0.01, 0.99)
 
         # Recommendation & Risk Classification
@@ -583,15 +767,21 @@ class IPOModelEngine:
 
         exp_open_return = round(float(self.reg_open.predict(X_trans)[0]), 2) if self.reg_open else round(exp_close_return * 0.9, 2)
 
+        X_7 = self.horizon_preprocessors.get("7", self.preprocessor).transform(
+            df_row[self.horizon_preprocessors.get("7", self.preprocessor).num_cols + self.horizon_preprocessors.get("7", self.preprocessor).cat_cols]
+        )
+        X_30 = self.horizon_preprocessors.get("30", self.preprocessor).transform(
+            df_row[self.horizon_preprocessors.get("30", self.preprocessor).num_cols + self.horizon_preprocessors.get("30", self.preprocessor).cat_cols]
+        )
         reg_7_weight = self.ensemble_weights.get("7_regression_rf", 0.50)
         reg_30_weight = self.ensemble_weights.get("30_regression_rf", 0.50)
         exp_7_return = round(float(
-            reg_7_weight * self.reg_7_rf.predict(X_trans)[0]
-            + (1.0 - reg_7_weight) * self.reg_7_lgb.predict(X_trans)[0]
+            reg_7_weight * self.reg_7_rf.predict(X_7)[0]
+            + (1.0 - reg_7_weight) * self.reg_7_lgb.predict(X_7)[0]
         ), 2)
         exp_30_return = round(float(
-            reg_30_weight * self.reg_30_rf.predict(X_trans)[0]
-            + (1.0 - reg_30_weight) * self.reg_30_lgb.predict(X_trans)[0]
+            reg_30_weight * self.reg_30_rf.predict(X_30)[0]
+            + (1.0 - reg_30_weight) * self.reg_30_lgb.predict(X_30)[0]
         ), 2)
 
         issue_price = float(row_dict.get("issue_price") or 100.0)

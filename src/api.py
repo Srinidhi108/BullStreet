@@ -29,6 +29,13 @@ def safe_float(value: Any, default: float = 0.0) -> float:
     except (TypeError, ValueError):
         return default
 
+def clean_symbol(value: Any) -> Optional[str]:
+    """Return a real ticker or None; never expose the literal string 'nan'."""
+    if value is None or pd.isna(value):
+        return None
+    symbol = str(value).strip()
+    return None if symbol.lower() in {"", "nan", "none", "nat", "n/a"} else symbol
+
 # Initialize FastAPI App
 app = FastAPI(
     title="BullStreet IPO Intelligence Terminal API",
@@ -163,7 +170,7 @@ def list_ipos(
         output.append({
             "ipo_id": row["ipo_id"],
             "company_name": row["company_name"],
-            "company_symbol": str(row.get("company_symbol", "")),
+            "company_symbol": clean_symbol(row.get("company_symbol")),
             "listing_segment": row["listing_segment"],
             "exchange": row["exchange"],
             "listing_date": str(row["listing_date"]),
